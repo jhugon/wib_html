@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+table {border-collapse: collapse;}
+td, th {
+  border: 1px solid black;
+  padding: 8px;
+  background-color: #dddddd;
+  border-collapse: collapse;
+}
+.goodwib {
+  font-weight: bold;
+  color: Blue;
+}
+.busywib {
+  font-weight: bold;
+  color: DarkOrange;
+}
+.nowib {
+  font-weight: normal;
+  color: Red;
+}
+</style>
+</head>
+<body>
+  <h1>WIB Status Overview</h1>
+  <div id=indivpages>
+    <h2>Individual WIB Pages</h2>
+    <table id=cryostat>
+      <tr>
+        <th></th>
+        <th>DaS</th>
+        <th>RaS</th>
+      </tr>
+      <tr>
+        <th>DS</th>
+        <td id=dsdas>
+        </td>
+        <td id=dsras>
+        </td>
+      </tr>
+      <tr>
+        <th>MS</th>
+        <td id=msdas>
+        </td>
+        <td id=msras>
+        </td>
+      </tr>
+      <tr>
+        <th>US</th>
+        <td id=usdas>
+        </td>
+        <td id=usras>
+        </td>
+      </tr>
+    </table> 
+    <table id=otderwibs>
+      <tr>
+        <th>VST</th>
+        <th>Cold Box</th>
+      </tr>
+      <tr>
+        <td id=vst>
+        </td>
+        <td id=coldbox>
+        </td>
+      </tr>
+    </table> 
+  </div>
+</body>
+</html>
+

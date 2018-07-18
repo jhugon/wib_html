@@ -1,5 +1,6 @@
 #!/usr/bin/env python2
 
+import os
 import os.path
 import subprocess
 import datetime
@@ -19,7 +20,7 @@ class WIBHTML(object):
   
     self.wib_uris = wib_uris
 
-    self.sleep_interval = 120
+    self.sleep_interval = sleep_interval
   
     self.wib_html_dir = os.path.dirname(os.path.realpath(__file__))
     self.temp_dir = os.path.join(self.wib_html_dir,"temp_dir/")
@@ -34,6 +35,18 @@ class WIBHTML(object):
     self.check_dnd_script_fn = os.path.join(self.wib_html_dir,self.check_dnd_script_fn)
 
     self.empty_html_fn = os.path.join(self.wib_html_dir,"html_templates/empty.html")
+
+    self.main_page_template_fn = os.path.join(self.wib_html_dir,"html_templates/index.html")
+    self.main_page_fn = os.path.join(self.out_dir,"index.html")
+
+    self.wib_locations = {}
+    self.wib_locations_simple = ["coldbox","dsras","msras","usras","dsdas","usdas","msdas",None,None,"vst"]
+    for i, loc in enumerate(self.wib_locations_simple):
+      if loc is None:
+        continue
+      for j in range(1,6):
+        name = "np04-wib-{0:03d}".format(i*100+j)
+        self.wib_locations[name] = loc
 
   def get_wib_name(self,wib_uri):
     if "192.168.200." in wib_uri:
@@ -137,18 +150,45 @@ class WIBHTML(object):
         #print "WIB {0} not found".format(wib_uri)
         self.annotate_page_on_error(wib_uri,False)
 
+  def make_main_page(self):
+    text = ""
+    with open(self.main_page_template_fn) as infile:
+      text = infile.read()
+
+    wibnames = [self.get_wib_name(wiburi) for wiburi in self.wib_uris]
+    wibnames.sort()
+    wibnames.reverse()
+    for wibname in wibnames:
+      indfn = os.path.join(self.out_dir,"wibs/{0}.html".format(wibname))
+      indtext = ""
+      with open(indfn) as indf:
+        indtext = indf.read()
+      wibstatus = "goodwib"
+      if "id=nowiberr" in indtext:
+        wibstatus = "nowib"
+      elif "id=busyerr" in indtext:
+        wibstatus = "busywib"
+      wibloc = self.wib_locations[wibname]
+      newtext = '<p><a href="./wibs/{0}.html" class="{1}">{2}</a></p>'.format(wibname,wibstatus,wibname)
+      regex = r"<td id={0}>".format(wibloc)
+      text = re.sub(regex,r"\g<0>"+"\n"+" "*10+newtext,text)
+
+    with open(self.main_page_fn,'w') as outfile:
+        outfile.write(text)
+
   def run(self):
     while True:
       self.update_individual_pages()
+      self.make_main_page()
       time.sleep(self.sleep_interval)
 
 if __name__ == "__main__":
 
   wib_uris = [
-    "192.168.200.1",
+    #"192.168.200.1",
     "192.168.200.2",
-    "192.168.200.3",
-    "192.168.200.4",
+    #"192.168.200.3",
+    #"192.168.200.4",
     "192.168.200.5",
   ]
   for i in range(7):
