@@ -87,6 +87,8 @@ class WIBHTML(object):
       instr = infile.read()
     newstr = "<h1>{0}</h1>\n<p>Updated at {1} Geneva time</p>\n".format(title,thistime)
     outstr = instr.replace("<body>","<body>\n"+newstr)
+    newstr = '<meta charset="UTF-8" /> <meta http-equiv="refresh" content="30" />'
+    outstr = outstr.replace("<head>","<head>"+newstr)
     outfn = os.path.join(self.individual_out_dir,wib_uri)+".html"
     with open(outfn,'w') as outfile:
       outfile.write(outstr)
@@ -151,9 +153,13 @@ class WIBHTML(object):
         self.annotate_page_on_error(wib_uri,False)
 
   def make_main_page(self):
+    thistime = datetime.datetime.now().replace(microsecond=0).isoformat(' ')
     text = ""
     with open(self.main_page_template_fn) as infile:
       text = infile.read()
+
+    newstr = "<p>Updated at {0} Geneva time</p>\n".format(thistime)
+    text = text.replace("</h1>","</h1>\n"+newstr)
 
     wibnames = [self.get_wib_name(wiburi) for wiburi in self.wib_uris]
     wibnames.sort()
