@@ -23,6 +23,18 @@ td, th {
   font-weight: normal;
   color: Red;
 }
+.summarytable {
+  font-family: "Lucida Console","Courier New", monospace;
+}
+.goodwibsummary {
+  color: Black;
+}
+.busywibsummary {
+  color: DarkOrange;
+}
+.nowibsummary {
+  color: Red;
+}
 #legend {
   border: 1px solid black;
   padding: 8px;
@@ -81,6 +93,15 @@ td, th {
     <p class="goodwib" >Able to communicate with WIB</p>
     <p class="busywib" >WIB busy</p>
     <p class="nowib" >Couldn't contact WIB</p>
+  </div>
+  <div id=summary>
+    <h2>Summary Tables</h2>
+    <table class="summarytable" id="summary1" >
+    </table> 
+    <table class="summarytable" id="summary2" >
+    </table> 
+    <table class="summarytable" id="summary3" >
+    </table> 
   </div>
 </body>
 </html>

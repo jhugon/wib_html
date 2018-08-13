@@ -6,6 +6,9 @@ import subprocess
 import datetime
 import time
 import re
+import lxml.html
+import lxml.etree
+from collections import OrderedDict
 
 class NoWIBError(Exception):
   pass
@@ -21,6 +24,24 @@ class WIBHTML(object):
     self.wib_uris = wib_uris
 
     self.sleep_interval = sleep_interval
+
+    # table, reg name, print type, table number (1,2)
+    self.summaryRegs = [
+              ("DTS","PDTS_STATE",0,1),
+              ("DTS","PDTS_TGRP",0,1),
+              ("DAQ_LINK","ENABLE","All",1),
+              ("FEMB_MEZZ","ADC SYNC STATUS (0 GOOD)","All",1),
+              ("FW","FW_TYPE",0,2),
+              ("FW","FW_VERSION",0,2),
+              ("FEMB_MEZZ","FWV","All",2),
+              ("FEMB_PWR_HUMAN","FE_2V5 I","All",2),
+              ("FEMB_MEZZ","FEMB_TST_SEL","All",2),
+           ]
+    self.summaryTableNames = set([i[0] for i in self.summaryRegs])
+    self.summaryRegNames = [i[1] for i in self.summaryRegs]
+
+
+
   
     self.wib_html_dir = os.path.dirname(os.path.realpath(__file__))
     self.temp_dir = os.path.join(self.wib_html_dir,"temp_dir/")
@@ -155,6 +176,55 @@ class WIBHTML(object):
         print "{2} BUTool error: {0}\n{1}".format(e.cmd,e.output,datetime.datetime.now().replace(microsecond=0).isoformat(' '))
         self.annotate_page_on_error(wib_uri,False)
 
+  def scrape_wib_page(self,wibname):
+      indfn = os.path.join(self.out_dir,"wibs/{0}.html".format(wibname))
+      indtext = ""
+      with open(indfn) as indf:
+        indtext = indf.read()
+      wibstatus = "goodwib"
+      if "id=nowiberr" in indtext:
+        wibstatus = "nowib"
+      elif "id=busyerr" in indtext:
+        wibstatus = "busywib"
+
+      data = {}
+      tree = lxml.html.fromstring(indtext)
+      print "#"*30
+      for level1 in tree:
+        if level1.tag == "body":
+            for level2 in level1:
+                if level2.tag == "table":
+                    tableName = level2[0][0].text
+                    if not (tableName in self.summaryTableNames):
+                        continue
+                    nRows = len(level2)
+                    for iRow in range(1,nRows):
+                        level3 = level2[iRow]
+                        regName = level3[0].text
+                        if regName in self.summaryRegNames:
+                          #data[regName] = level2[iRow][1].text
+                          values = []
+                          nCols = len(level3)
+                          for iCol in range(1,nCols):
+                            values.append(level3[iCol].text)
+                          data[regName] = values
+      result = []
+      for summaryRegConf in self.summaryRegs:
+        try:
+          row = data[summaryRegConf[1]]
+          print row
+          if type(summaryRegConf[2]) is int:
+            result.append(row[summaryRegConf[2]].strip())
+          else:
+            row = [i.strip() for i in row if i != ' ']
+            row = [i for i in row if len(i) > 0]
+            print row
+            result.append(" ".join(row))
+        except KeyError:
+          result.append("")
+      print result
+      return wibstatus, result
+
   def make_main_page(self):
     thistime = datetime.datetime.now().replace(microsecond=0).isoformat(' ')
     text = ""
@@ -167,20 +237,36 @@ class WIBHTML(object):
     wibnames = [self.get_wib_name(wiburi) for wiburi in self.wib_uris]
     wibnames.sort()
     wibnames.reverse()
+    
+    summarydata = []
+    wibstatuslist = []
     for wibname in wibnames:
-      indfn = os.path.join(self.out_dir,"wibs/{0}.html".format(wibname))
-      indtext = ""
-      with open(indfn) as indf:
-        indtext = indf.read()
-      wibstatus = "goodwib"
-      if "id=nowiberr" in indtext:
-        wibstatus = "nowib"
-      elif "id=busyerr" in indtext:
-        wibstatus = "busywib"
+      wibstatus, summaryrow = self.scrape_wib_page(wibname)
+      wibstatuslist.append(wibstatus)
+      summarydata.append(summaryrow)
       wibloc = self.wib_locations[wibname]
       newtext = '<p><a href="./wibs/{0}.html" class="{1}">{2}</a></p>'.format(wibname,wibstatus,wibname)
       regex = r"<td id={0}>".format(wibloc)
       text = re.sub(regex,r"\g<0>"+"\n"+" "*10+newtext,text)
+
+    for iSummary in range(1,3):
+      summarytext = ' '*10+'<tr><th></th>'
+      for summaryRegConf in self.summaryRegs:
+          if summaryRegConf[3] == iSummary:
+            summarytext += "<th><p>{0}</p><p>{1}</p></th>".format(summaryRegConf[0],summaryRegConf[1])
+      summarytext += "</tr>\n"
+      for wibname, summaryrow, wibstatus in zip(wibnames,summarydata,wibstatuslist):
+        assert(len(self.summaryRegs) == len(summaryrow))
+        rowtext = ' '*10+'<tr class={0}summary>'.format(wibstatus)
+        rowtext += "<th>{0}</th>".format(wibname)
+        for summarydatum,summaryRegConf in zip(summaryrow,self.summaryRegs):
+          if summaryRegConf[3] == iSummary:
+            rowtext += "<td>{0}</td>".format(summarydatum)
+        rowtext += "</tr>\n"
+        summarytext += rowtext
+
+      regex = r'<table class="summarytable" id="summary{0}" >'.format(iSummary)
+      text = re.sub(regex,r"\g<0>"+"\n"+summarytext,text)
 
     with open(self.main_page_fn,'w') as outfile:
         outfile.write(text)
