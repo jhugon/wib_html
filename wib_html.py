@@ -151,6 +151,9 @@ class WIBHTML(object):
       except NoWIBError:
         #print "WIB {0} not found".format(wib_uri)
         self.annotate_page_on_error(wib_uri,False)
+      except subprocess.CalledProcessError as e:
+        print "{2} BUTool error: {0}\n{1}".format(e.cmd,e.output,datetime.datetime.now().replace(microsecond=0).isoformat(' '))
+        self.annotate_page_on_error(wib_uri,False)
 
   def make_main_page(self):
     thistime = datetime.datetime.now().replace(microsecond=0).isoformat(' ')
@@ -184,9 +187,13 @@ class WIBHTML(object):
 
   def run(self):
     while True:
-      self.update_individual_pages()
-      self.make_main_page()
-      time.sleep(self.sleep_interval)
+      try:
+        self.update_individual_pages()
+        self.make_main_page()
+        time.sleep(self.sleep_interval)
+      except Exception as e:
+        print "{2} Unhandled exception: {0}: {1}".format(str(type(e)),str(e),datetime.datetime.now().replace(microsecond=0).isoformat(' '))
+        
 
 if __name__ == "__main__":
 
