@@ -189,7 +189,6 @@ class WIBHTML(object):
 
       data = {}
       tree = lxml.html.fromstring(indtext)
-      print "#"*30
       for level1 in tree:
         if level1.tag == "body":
             for level2 in level1:
@@ -212,17 +211,14 @@ class WIBHTML(object):
       for summaryRegConf in self.summaryRegs:
         try:
           row = data[summaryRegConf[1]]
-          print row
           if type(summaryRegConf[2]) is int:
             result.append(row[summaryRegConf[2]].strip())
           else:
             row = [i.strip() for i in row if i != ' ']
             row = [i for i in row if len(i) > 0]
-            print row
             result.append(" ".join(row))
         except KeyError:
           result.append("")
-      print result
       return wibstatus, result
 
   def make_main_page(self):
